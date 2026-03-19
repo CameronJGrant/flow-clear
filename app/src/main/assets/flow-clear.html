@@ -493,6 +493,10 @@
       <div class="label">Dark Mode</div>
       <button class="toggle on" id="toggleDarkMode"></button>
     </div>
+    <div class="settings-row">
+      <div class="label">Share Analytics</div>
+      <button class="toggle on" id="toggleAnalytics"></button>
+    </div>
     <a class="settings-link" id="rateUsLink" href="#">
       <div class="label">Rate Us</div>
       <span class="arrow">›</span>
@@ -511,16 +515,19 @@ const settings = {
   sound: localStorage.getItem('fc_sound') !== 'false',
   vibration: localStorage.getItem('fc_vibration') !== 'false',
   darkMode: localStorage.getItem('fc_darkMode') !== 'false',
+  analytics: localStorage.getItem('fc_analytics') !== 'false',
 };
 
 function applySettings() {
   document.getElementById('toggleSound').classList.toggle('on', settings.sound);
   document.getElementById('toggleVibration').classList.toggle('on', settings.vibration);
   document.getElementById('toggleDarkMode').classList.toggle('on', settings.darkMode);
+  document.getElementById('toggleAnalytics').classList.toggle('on', settings.analytics);
   document.body.classList.toggle('light-mode', !settings.darkMode);
   localStorage.setItem('fc_sound', settings.sound);
   localStorage.setItem('fc_vibration', settings.vibration);
   localStorage.setItem('fc_darkMode', settings.darkMode);
+  localStorage.setItem('fc_analytics', settings.analytics);
 }
 
 applySettings();
@@ -545,6 +552,11 @@ document.getElementById('toggleVibration').addEventListener('click', () => {
 
 document.getElementById('toggleDarkMode').addEventListener('click', () => {
   settings.darkMode = !settings.darkMode;
+  applySettings();
+});
+
+document.getElementById('toggleAnalytics').addEventListener('click', () => {
+  settings.analytics = !settings.analytics;
   applySettings();
 });
 
