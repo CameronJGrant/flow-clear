@@ -1,0 +1,1776 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Flow Clear</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700;900&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #0a0a0f;
+    --bg2: #12121a;
+    --text: #e8e8f0;
+    --dim: #555568;
+    --pop: #7df9ff;
+    --gold: #ffd700;
+    --red: #ff4466;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Outfit', sans-serif;
+    height: 100dvh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  header {
+    width: 100%;
+    max-width: 420px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px 8px;
+  }
+
+  .logo {
+    font-weight: 900;
+    font-size: 20px;
+    letter-spacing: -0.5px;
+    background: linear-gradient(135deg, var(--pop), #a78bfa);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .stats {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-weight: 500;
+    font-size: 14px;
+    color: var(--dim);
+  }
+  .stats span { color: var(--pop); }
+
+  .hearts {
+    display: flex;
+    gap: 4px;
+  }
+  .heart {
+    font-size: 18px;
+    color: var(--red);
+    transition: transform 0.3s, opacity 0.3s;
+  }
+  .heart.lost {
+    opacity: 0.15;
+    transform: scale(0.7);
+  }
+  .heart.breaking {
+    animation: heartBreak 0.5s ease-out;
+  }
+  @keyframes heartBreak {
+    0% { transform: scale(1); }
+    30% { transform: scale(1.4); }
+    100% { transform: scale(0.7); opacity: 0.15; }
+  }
+
+  .reset-btn {
+    background: none;
+    border: 1.5px solid rgba(255,255,255,0.12);
+    color: var(--dim);
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s, transform 0.15s;
+    flex-shrink: 0;
+  }
+  .reset-btn:hover { border-color: var(--pop); color: var(--pop); }
+  .reset-btn:active { transform: scale(0.9) rotate(-90deg); }
+  .reset-btn svg { width: 16px; height: 16px; }
+
+  .level-bar {
+    width: 100%;
+    max-width: 420px;
+    padding: 4px 20px 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .level-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--dim);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    white-space: nowrap;
+  }
+
+  .progress-track {
+    flex: 1;
+    height: 4px;
+    background: var(--bg2);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--pop), #a78bfa);
+    border-radius: 2px;
+    transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .game-area {
+    flex: 1;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+    position: relative;
+  }
+
+  canvas {
+    border-radius: 16px;
+    touch-action: none;
+  }
+
+  .hint-text {
+    position: absolute;
+    bottom: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 13px;
+    font-weight: 300;
+    opacity: 0;
+    transition: opacity 0.5s;
+    pointer-events: none;
+    text-align: center;
+    width: 90%;
+    color: var(--dim);
+  }
+  .hint-text.show { opacity: 1; }
+  .hint-text.blocked { color: var(--red); }
+
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(10,10,15,0.92);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s;
+  }
+  .overlay.show { opacity: 1; pointer-events: all; }
+
+  .overlay h2 {
+    font-size: 32px;
+    font-weight: 900;
+    margin-bottom: 4px;
+  }
+  .overlay h2.win-title {
+    background: linear-gradient(135deg, var(--pop), #a78bfa);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .overlay h2.lose-title {
+    background: linear-gradient(135deg, var(--red), #ff8800);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .overlay .sub {
+    font-size: 15px;
+    color: var(--dim);
+    margin-bottom: 28px;
+    font-weight: 300;
+  }
+
+  .btn {
+    background: linear-gradient(135deg, var(--pop), #a78bfa);
+    color: var(--bg);
+    border: none;
+    padding: 14px 40px;
+    border-radius: 50px;
+    font-family: 'Outfit', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 0.5px;
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .btn:active { transform: scale(0.96); }
+  .btn:hover { box-shadow: 0 0 30px rgba(125,249,255,0.3); }
+  .btn.retry {
+    background: linear-gradient(135deg, var(--red), #ff8800);
+  }
+
+  .stars {
+    font-size: 40px;
+    margin-bottom: 12px;
+    letter-spacing: 6px;
+  }
+
+  .score-line {
+    font-size: 14px;
+    color: var(--dim);
+    margin-bottom: 6px;
+  }
+  .score-line span { color: var(--gold); font-weight: 700; }
+
+  .shake { animation: shake 0.4s ease-out; }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-6px); }
+    40% { transform: translateX(6px); }
+    60% { transform: translateX(-4px); }
+    80% { transform: translateX(4px); }
+  }
+
+  .tutorial-bubble {
+    position: absolute;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(20, 20, 35, 0.95);
+    border: 1.5px solid rgba(125, 249, 255, 0.3);
+    border-radius: 16px;
+    padding: 16px 24px;
+    max-width: 320px;
+    width: 85%;
+    text-align: center;
+    z-index: 5;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s, transform 0.4s;
+    transform: translateX(-50%) translateY(10px);
+    box-shadow: 0 0 30px rgba(125, 249, 255, 0.08);
+  }
+  .tutorial-bubble.show {
+    opacity: 1;
+    pointer-events: all;
+    transform: translateX(-50%) translateY(0);
+  }
+  .tutorial-bubble .tut-msg {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text);
+    line-height: 1.5;
+  }
+  .tutorial-bubble .tut-tag {
+    font-size: 11px;
+    font-weight: 300;
+    color: var(--pop);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 6px;
+  }
+  .tutorial-bubble .tut-tap-hint {
+    font-size: 11px;
+    font-weight: 300;
+    color: var(--dim);
+    margin-top: 8px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">FLOW CLEAR</div>
+  <div class="stats">
+    LVL <span id="levelNum">1</span>
+    <div class="hearts" id="hearts">
+      <div class="heart">♥</div>
+      <div class="heart">♥</div>
+      <div class="heart">♥</div>
+    </div>
+  </div>
+  <button class="reset-btn" id="resetBtn" title="Reset level">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+  </button>
+</header>
+
+<div class="level-bar">
+  <div class="level-label">Cleared</div>
+  <div class="progress-track">
+    <div class="progress-fill" id="progressFill" style="width:0%"></div>
+  </div>
+</div>
+
+<div class="game-area">
+  <canvas id="c"></canvas>
+  <div class="hint-text" id="hint"></div>
+  <div class="tutorial-bubble" id="tutBubble">
+    <div class="tut-tag">Tutorial</div>
+    <div class="tut-msg" id="tutMsg"></div>
+    <div class="tut-tap-hint" id="tutTapHint" style="display:none">Tap to continue</div>
+  </div>
+</div>
+
+<div class="overlay" id="winOverlay">
+  <div class="stars" id="stars"></div>
+  <h2 class="win-title">Cleared!</h2>
+  <div class="sub" id="winSub"></div>
+  <div class="score-line">Moves: <span id="winMoves">0</span> / Perfect: <span id="winPar">0</span></div>
+  <br>
+  <button class="btn" id="nextBtn">Next Level</button>
+</div>
+
+<div class="overlay" id="loseOverlay">
+  <div style="font-size:48px; margin-bottom:12px; color:#ff4466;">✕</div>
+  <h2 class="lose-title">Blocked!</h2>
+  <div class="sub" id="loseSub"></div>
+  <br>
+  <button class="btn retry" id="retryBtn">Retry</button>
+</div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+// ── Audio & Haptics ──
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx = null;
+
+function ensureAudio() {
+  if (!audioCtx) audioCtx = new AudioCtx();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+
+function vibrate(pattern) {
+  if (navigator.vibrate) navigator.vibrate(pattern);
+}
+
+function playTone(freq, duration, type = 'sine', volume = 0.3, ramp = 0.01) {
+  ensureAudio();
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = type;
+  osc.frequency.value = freq;
+  gain.gain.setValueAtTime(0, audioCtx.currentTime);
+  gain.gain.linearRampToValueAtTime(volume, audioCtx.currentTime + ramp);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.start();
+  osc.stop(audioCtx.currentTime + duration);
+}
+
+function sfxFuseLight() {
+  playTone(880, 0.15, 'sine', 0.2);
+  setTimeout(() => playTone(1100, 0.1, 'sine', 0.15), 60);
+  vibrate(15);
+}
+
+function sfxBlocked() {
+  playTone(180, 0.25, 'square', 0.2);
+  setTimeout(() => playTone(140, 0.2, 'square', 0.15), 100);
+  vibrate([30, 50, 30]);
+}
+
+function sfxPop() {
+  ensureAudio();
+  // Satisfying sizzle-pop when fuse reaches the end
+  const bufSize = Math.floor(audioCtx.sampleRate * 0.15);
+  const buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < bufSize; i++) {
+    const t = i / audioCtx.sampleRate;
+    // Crackle that swells then pops
+    const env = Math.sin(Math.PI * i / bufSize) * Math.exp(-t * 8);
+    data[i] = (Math.random() * 2 - 1) * env;
+  }
+  const src = audioCtx.createBufferSource();
+  src.buffer = buf;
+  const filter = audioCtx.createBiquadFilter();
+  filter.type = 'highpass';
+  filter.frequency.value = 2000;
+  const gain = audioCtx.createGain();
+  gain.gain.value = 0.35;
+  src.connect(filter);
+  filter.connect(gain);
+  gain.connect(audioCtx.destination);
+  src.start();
+  // Add a tonal pop on top
+  playTone(800, 0.1, 'sine', 0.12);
+}
+
+// Continuous fuse burn sound — returns a stop function
+let activeFuseSounds = new Map();
+
+function sfxFuseBurnStart(pathIndex, durationMs) {
+  ensureAudio();
+  const duration = durationMs / 1000;
+  // Crackling noise buffer for the burn
+  const bufSize = Math.floor(audioCtx.sampleRate * duration);
+  const buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < bufSize; i++) {
+    const t = i / bufSize;
+    // Crackling that rises slightly in intensity
+    const crackle = (Math.random() * 2 - 1);
+    // Random pops — sparse at start, denser toward end
+    const popChance = 0.002 + t * 0.01;
+    const pop = Math.random() < popChance ? (Math.random() * 2 - 1) * 3 : 0;
+    const env = 0.3 + t * 0.4;
+    data[i] = (crackle * 0.3 + pop) * env;
+  }
+  const src = audioCtx.createBufferSource();
+  src.buffer = buf;
+  // Bandpass to sound like a fuse, not static
+  const filter = audioCtx.createBiquadFilter();
+  filter.type = 'bandpass';
+  filter.frequency.value = 2500;
+  filter.Q.value = 0.8;
+  const gain = audioCtx.createGain();
+  gain.gain.value = 0.18;
+  src.connect(filter);
+  filter.connect(gain);
+  gain.connect(audioCtx.destination);
+  src.start();
+  activeFuseSounds.set(pathIndex, { src, gain });
+}
+
+function sfxFuseBurnStop(pathIndex) {
+  const sound = activeFuseSounds.get(pathIndex);
+  if (sound) {
+    try { sound.src.stop(); } catch(e) {}
+    activeFuseSounds.delete(pathIndex);
+  }
+}
+
+function sfxWin() {
+  [0, 100, 200, 350].forEach((delay, i) => {
+    setTimeout(() => playTone([523, 659, 784, 1047][i], 0.3 - i * 0.03, 'sine', 0.2), delay);
+  });
+  vibrate([20, 40, 20, 40, 20]);
+}
+
+function sfxLose() {
+  [0, 150, 300].forEach((delay, i) => {
+    setTimeout(() => playTone([400, 300, 200][i], 0.3, 'sine', 0.2), delay);
+  });
+  vibrate([50, 30, 80]);
+}
+
+function sfxClickNode() {
+  ensureAudio();
+  // Heavier, deeper thunk for game nodes
+  const bufSize = Math.floor(audioCtx.sampleRate * 0.025);
+  const buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < bufSize; i++) {
+    const env = Math.exp(-i / (bufSize * 0.12));
+    data[i] = (Math.random() * 2 - 1) * env;
+  }
+  const src = audioCtx.createBufferSource();
+  src.buffer = buf;
+  const filter = audioCtx.createBiquadFilter();
+  filter.type = 'bandpass';
+  filter.frequency.value = 1800;
+  filter.Q.value = 1.0;
+  const gain = audioCtx.createGain();
+  gain.gain.value = 0.5;
+  src.connect(filter);
+  filter.connect(gain);
+  gain.connect(audioCtx.destination);
+  src.start();
+  vibrate(8);
+}
+
+function sfxClick() {
+  ensureAudio();
+  // Light, crisp snap for UI buttons
+  const bufSize = Math.floor(audioCtx.sampleRate * 0.012);
+  const buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < bufSize; i++) {
+    const env = Math.exp(-i / (bufSize * 0.18));
+    data[i] = (Math.random() * 2 - 1) * env;
+  }
+  const src = audioCtx.createBufferSource();
+  src.buffer = buf;
+  const filter = audioCtx.createBiquadFilter();
+  filter.type = 'bandpass';
+  filter.frequency.value = 4000;
+  filter.Q.value = 2.0;
+  const gain = audioCtx.createGain();
+  gain.gain.value = 0.3;
+  src.connect(filter);
+  filter.connect(gain);
+  gain.connect(audioCtx.destination);
+  src.start();
+  vibrate(8);
+}
+
+const COLORS = [
+  { hex: '#ff6b8a', name: 'pink' },
+  { hex: '#7df9ff', name: 'cyan' },
+  { hex: '#a78bfa', name: 'purple' },
+  { hex: '#4ade80', name: 'green' },
+  { hex: '#fbbf24', name: 'yellow' },
+  { hex: '#f97316', name: 'orange' },
+  { hex: '#38bdf8', name: 'blue' },
+  { hex: '#e879f9', name: 'magenta' },
+  { hex: '#f43f5e', name: 'red' },
+  { hex: '#2dd4bf', name: 'teal' },
+  { hex: '#e2e8f0', name: 'white' },
+  { hex: '#a3e635', name: 'lime' },
+];
+
+let level = 1;
+let moves = 0;
+let lives = 3;
+const maxLives = 3;
+let won = false;
+let lost = false;
+let animating = false;
+let gridW, gridH, cellSize, offsetX, offsetY;
+
+let paths = [];
+let clearedPathIndices = new Set();
+
+let particles = [];
+let pulseAnims = [];
+let nodeFlashAnims = [];
+
+function resize() {
+  const area = document.querySelector('.game-area');
+  const w = area.clientWidth - 10;
+  const h = area.clientHeight - 10;
+  canvas.style.width = w + 'px';
+  canvas.style.height = h + 'px';
+  canvas.width = w * dpr;
+  canvas.height = h * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  // Base cell size: fit the grid into the canvas with some padding
+  const fitSize = Math.min(w, h);
+  cellSize = fitSize / (Math.max(gridW, gridH) + 1);
+  offsetX = (w - (gridW - 1) * cellSize) / 2;
+  offsetY = (h - (gridH - 1) * cellSize) / 2;
+}
+
+// Camera state
+let camX = 0, camY = 0, camZoom = 1;
+
+function resetCamera() {
+  camX = 0;
+  camY = 0;
+  camZoom = 1;
+}
+
+// Convert grid coords to screen pixels (through camera)
+function gx2px(gx) { return (gx * cellSize + offsetX + camX) * camZoom + (canvas.width / dpr) * (1 - camZoom) / 2; }
+function gy2py(gy) { return (gy * cellSize + offsetY + camY) * camZoom + (canvas.height / dpr) * (1 - camZoom) / 2; }
+
+// Convert screen pixel to world coords (inverse camera)
+function screen2world(sx, sy) {
+  const cw = canvas.width / dpr;
+  const ch = canvas.height / dpr;
+  const wx = (sx - cw * (1 - camZoom) / 2) / camZoom - camX;
+  const wy = (sy - ch * (1 - camZoom) / 2) / camZoom - camY;
+  return { x: wx, y: wy };
+}
+
+// ── Seeded PRNG (mulberry32) ──
+// Same level number = same board on every device
+function createRNG(seed) {
+  let s = seed | 0;
+  return function() {
+    s = (s + 0x6D2B79F5) | 0;
+    let t = Math.imul(s ^ (s >>> 15), 1 | s);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+let rng = Math.random; // default, overwritten per level
+
+// ── Tutorial Levels (hand-crafted) ──
+
+let tutorialStep = -1; // -1 = no tutorial active
+let tutorialSteps = [];
+let tutorialLevelIndex = -1;
+
+const TUTORIAL_LEVELS = [
+  // Level 1: Two independent paths — learn to tap
+  {
+    gridW: 3, gridH: 3,
+    paths: [
+      { colorIndex: 1, segments: [{gx:1,gy:0},{gx:1,gy:1},{gx:1,gy:2}] },
+      { colorIndex: 0, segments: [{gx:0,gy:1},{gx:0,gy:2},{gx:1,gy:2},{gx:2,gy:2}] },
+    ],
+    steps: [
+      { msg: "Tap a glowing node to light the fuse", highlightPath: 0 },
+      { msg: "Now clear the other path!", highlightPath: 1 },
+      { msg: null }, // auto-dismiss after win
+    ],
+  },
+  // Level 2: One path blocks another — learn about blocking
+  // Cyan passes through purple's source at (1,0), so cyan is blocked until purple is cleared
+  {
+    gridW: 3, gridH: 3,
+    paths: [
+      { colorIndex: 2, segments: [{gx:1,gy:0},{gx:1,gy:1},{gx:1,gy:2}] },
+      { colorIndex: 1, segments: [{gx:0,gy:2},{gx:0,gy:1},{gx:0,gy:0},{gx:1,gy:0},{gx:2,gy:0}] },
+    ],
+    steps: [
+      { msg: "Try tapping the cyan node", highlightPath: 1, trigger: 'blocked' },
+      { msg: "Blocked! You lost a heart. The cyan path crosses through the purple node.", trigger: 'tap' },
+      { msg: "Clear purple first to unblock cyan", highlightPath: 0, trigger: 'clear' },
+      { msg: "Now cyan is free — tap it!", highlightPath: 1, trigger: 'clear' },
+      { msg: null },
+    ],
+  },
+  // Level 3: Three paths with a chain — figure it out
+  {
+    gridW: 4, gridH: 4,
+    paths: [
+      { colorIndex: 4, segments: [{gx:0,gy:0},{gx:1,gy:0},{gx:2,gy:0},{gx:3,gy:0}] },
+      { colorIndex: 3, segments: [{gx:3,gy:1},{gx:2,gy:1},{gx:1,gy:1},{gx:0,gy:1},{gx:0,gy:0}] },
+      { colorIndex: 0, segments: [{gx:1,gy:3},{gx:1,gy:2},{gx:2,gy:2},{gx:3,gy:2},{gx:3,gy:1}] },
+    ],
+    steps: [
+      { msg: "Now try three paths — find the right order!", trigger: 'clear' },
+      { msg: "Keep going...", trigger: 'clear' },
+      { msg: "One more!", trigger: 'clear' },
+      { msg: null },
+    ],
+  },
+];
+
+function loadTutorialLevel(lvl) {
+  const tut = TUTORIAL_LEVELS[lvl - 1];
+  tutorialLevelIndex = lvl - 1;
+  gridW = tut.gridW;
+  gridH = tut.gridH;
+
+  paths = [];
+  clearedPathIndices = new Set();
+  particles = [];
+  pulseAnims = [];
+  nodeFlashAnims = [];
+  moves = 0;
+  lives = maxLives;
+  won = false;
+  lost = false;
+  animating = false;
+
+  for (const p of tut.paths) {
+    const color = COLORS[p.colorIndex];
+    paths.push({
+      colorIndex: p.colorIndex,
+      color: color.hex,
+      colorName: color.name,
+      sourceNode: { gx: p.segments[0].gx, gy: p.segments[0].gy },
+      segments: p.segments.map(s => ({ gx: s.gx, gy: s.gy })),
+      genOrder: paths.length,
+      clearedSegs: 0,
+    });
+  }
+
+  totalEdges = paths.reduce((sum, p) => sum + p.segments.length - 1, 0);
+
+  tutorialSteps = tut.steps;
+  tutorialStep = 0;
+  showTutorialStep();
+
+  updateUI();
+  resize();
+  resetCamera();
+}
+
+function showTutorialStep() {
+  if (tutorialStep < 0 || tutorialStep >= tutorialSteps.length) {
+    dismissTutorial();
+    return;
+  }
+  const step = tutorialSteps[tutorialStep];
+  if (!step.msg) {
+    dismissTutorial();
+    return;
+  }
+  showTutorialOverlay(step.msg, step.highlightPath, step.highlightBlocker);
+}
+
+function advanceTutorialOn(trigger) {
+  if (tutorialStep < 0 || tutorialStep >= tutorialSteps.length) return;
+  const step = tutorialSteps[tutorialStep];
+  if (step.trigger === trigger) {
+    tutorialStep++;
+    showTutorialStep();
+  }
+}
+
+function dismissTutorial() {
+  tutorialStep = -1;
+  tutorialLevelIndex = -1;
+  tutorialHighlightPath = -1;
+  tutorialHighlightBlocker = -1;
+  hideTutorialOverlay();
+}
+
+let tutorialHighlightPath = -1;
+let tutorialHighlightBlocker = -1;
+
+function showTutorialOverlay(msg, highlightPath, highlightBlocker) {
+  const bubble = document.getElementById('tutBubble');
+  const step = tutorialSteps[tutorialStep];
+  document.getElementById('tutMsg').textContent = msg;
+  // Show "tap to continue" hint when step requires a tap
+  const tapHint = document.getElementById('tutTapHint');
+  if (tapHint) tapHint.style.display = (step && step.trigger === 'tap') ? 'block' : 'none';
+  bubble.classList.add('show');
+  tutorialHighlightPath = highlightPath ?? -1;
+  tutorialHighlightBlocker = highlightBlocker ?? -1;
+}
+
+function hideTutorialOverlay() {
+  document.getElementById('tutBubble').classList.remove('show');
+  tutorialHighlightPath = -1;
+  tutorialHighlightBlocker = -1;
+}
+
+function isTutorialLevel(lvl) {
+  return lvl >= 1 && lvl <= TUTORIAL_LEVELS.length;
+}
+
+// ── Level Generation ──
+
+function generateLevel(lvl) {
+  if (isTutorialLevel(lvl)) {
+    loadTutorialLevel(lvl);
+    return;
+  }
+
+  dismissTutorial();
+
+  // Seed RNG from level number — deterministic levels
+  rng = createRNG(lvl * 2654435761);
+
+  // ── Progression Curve ──  (offset by tutorial count so difficulty stays smooth)
+  const effectiveLvl = lvl - TUTORIAL_LEVELS.length;
+  const baseSize = Math.min(3 + Math.floor((effectiveLvl - 1) / 4), 10);
+  gridW = baseSize;
+  gridH = baseSize;
+
+  paths = [];
+  clearedPathIndices = new Set();
+  particles = [];
+  pulseAnims = [];
+  nodeFlashAnims = [];
+  moves = 0;
+  lives = maxLives;
+  won = false;
+  lost = false;
+  animating = false;
+
+  // Paths: 2 at effectiveLvl 1, +1 every 3 levels, no cap (colors can repeat)
+  const numPaths = 2 + Math.floor((effectiveLvl - 1) / 3);
+
+  // Shuffle colors using the seeded RNG
+  const shuffledColors = [...COLORS];
+  for (let i = shuffledColors.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [shuffledColors[i], shuffledColors[j]] = [shuffledColors[j], shuffledColors[i]];
+  }
+
+  // Try generating a valid board (retry if we get cycles)
+  for (let boardAttempt = 0; boardAttempt < 50; boardAttempt++) {
+    const candidatePaths = [];
+    const usedSources = new Set();
+    const usedEdges = new Set(); // "x1,y1-x2,y2" canonical — no two paths share an edge
+
+    function makeEdgeKey(ax, ay, bx, by) {
+      if (ax < bx || (ax === bx && ay < by)) return ax+','+ay+'-'+bx+','+by;
+      return bx+','+by+'-'+ax+','+ay;
+    }
+
+    let success = true;
+    for (let p = 0; p < numPaths; p++) {
+      let placed = false;
+
+      for (let attempt = 0; attempt < 150; attempt++) {
+        // Pick source — avoid other sources
+        let sx, sy, srcTries = 0;
+        do {
+          sx = Math.floor(rng() * gridW);
+          sy = Math.floor(rng() * gridH);
+          srcTries++;
+        } while (usedSources.has(sx+','+sy) && srcTries < 60);
+        if (usedSources.has(sx+','+sy)) continue;
+
+        // Pick color — cycle through shuffled colors, ensure 2+ tile distance from same color sources
+        let color = null;
+        let colorIndex = -1;
+        const baseIdx = p % shuffledColors.length;
+        for (let ci = 0; ci < shuffledColors.length; ci++) {
+          const tryIdx = (baseIdx + ci) % shuffledColors.length;
+          const tryColor = shuffledColors[tryIdx];
+          const tooClose = candidatePaths.some(cp =>
+            cp.color === tryColor.hex &&
+            Math.abs(cp.sourceNode.gx - sx) + Math.abs(cp.sourceNode.gy - sy) < 3
+          );
+          if (!tooClose) {
+            color = tryColor;
+            colorIndex = tryIdx;
+            break;
+          }
+        }
+        if (!color) { color = shuffledColors[baseIdx]; colorIndex = baseIdx; }
+
+        // Build path via random walk
+        // Length: 2-3 at lvl 1, grows steadily, caps at grid*2.5
+        const maxLen = Math.floor(baseSize * 2.5);
+        const minLen = Math.min(2 + Math.floor(effectiveLvl / 5), maxLen - 1);
+        const range = Math.max(1, Math.min(Math.floor(effectiveLvl / 3), maxLen - minLen));
+        const pathLen = minLen + Math.floor(rng() * range);
+        const segments = [{ gx: sx, gy: sy }];
+        const visited = new Set([sx+','+sy]);
+        const pathEdges = []; // edges used by THIS attempt (commit only on success)
+
+        // Path N>0 must pass through a previous path's source
+        let mustPassThrough = null;
+        if (p > 0) {
+          const earlier = candidatePaths[Math.floor(rng() * candidatePaths.length)];
+          mustPassThrough = earlier.sourceNode;
+        }
+        let passedThrough = (mustPassThrough === null);
+
+        let current = { gx: sx, gy: sy };
+
+        for (let step = 0; step < pathLen; step++) {
+          const dirs = [[-1,0],[1,0],[0,-1],[0,1]];
+          for (let i = dirs.length - 1; i > 0; i--) {
+            const j = Math.floor(rng() * (i + 1));
+            [dirs[i], dirs[j]] = [dirs[j], dirs[i]];
+          }
+
+          if (!passedThrough && mustPassThrough) {
+            const dx = mustPassThrough.gx - current.gx;
+            const dy = mustPassThrough.gy - current.gy;
+            const preferred = [];
+            if (dx !== 0) preferred.push([Math.sign(dx), 0]);
+            if (dy !== 0) preferred.push([0, Math.sign(dy)]);
+            for (const pref of preferred.reverse()) {
+              const idx = dirs.findIndex(d => d[0] === pref[0] && d[1] === pref[1]);
+              if (idx > 0) { dirs.splice(idx, 1); dirs.unshift(pref); }
+            }
+          }
+
+          let moved = false;
+          for (const [dx, dy] of dirs) {
+            const nx = current.gx + dx;
+            const ny = current.gy + dy;
+            if (nx < 0 || nx >= gridW || ny < 0 || ny >= gridH) continue;
+            const key = nx+','+ny;
+            if (visited.has(key)) continue;
+
+            // Check edge exclusivity — no parallel overlaps
+            const ek = makeEdgeKey(current.gx, current.gy, nx, ny);
+            if (usedEdges.has(ek)) continue;
+
+            visited.add(key);
+            segments.push({ gx: nx, gy: ny });
+            pathEdges.push(ek);
+            current = { gx: nx, gy: ny };
+
+            if (mustPassThrough && nx === mustPassThrough.gx && ny === mustPassThrough.gy) {
+              passedThrough = true;
+            }
+            moved = true;
+            break;
+          }
+          if (!moved) break;
+        }
+
+        if (segments.length < 3) continue;
+        if (!passedThrough) continue;
+
+        // Commit: register source and edges
+        usedSources.add(sx+','+sy);
+        for (const ek of pathEdges) usedEdges.add(ek);
+
+        candidatePaths.push({
+          colorIndex: colorIndex,
+          color: color.hex,
+          colorName: color.name,
+          sourceNode: { gx: sx, gy: sy },
+          segments,
+          genOrder: p,
+          clearedSegs: 0,
+        });
+        placed = true;
+        break;
+      }
+
+      if (!placed && p < 2) { success = false; break; }
+    }
+
+    if (!success || candidatePaths.length < 2) continue;
+
+    // ── Validate: build dependency graph and check for cycles ──
+    // Path A depends on path B if B's source sits on A's segments (excluding A's own source)
+    const n = candidatePaths.length;
+    const deps = Array.from({ length: n }, () => []); // deps[i] = paths that must be cleared before i
+
+    for (let i = 0; i < n; i++) {
+      const segs = candidatePaths[i].segments;
+      for (let s = 1; s < segs.length; s++) {
+        for (let j = 0; j < n; j++) {
+          if (j === i) continue;
+          const src = candidatePaths[j].sourceNode;
+          if (segs[s].gx === src.gx && segs[s].gy === src.gy) {
+            deps[i].push(j); // i is blocked by j
+          }
+        }
+      }
+    }
+
+    // Topological sort to check for cycles
+    const visited = new Array(n).fill(0); // 0=unvisited, 1=in-progress, 2=done
+    const order = [];
+    let hasCycle = false;
+
+    function dfs(node) {
+      if (hasCycle) return;
+      if (visited[node] === 1) { hasCycle = true; return; }
+      if (visited[node] === 2) return;
+      visited[node] = 1;
+      for (const dep of deps[node]) dfs(dep);
+      visited[node] = 2;
+      order.push(node);
+    }
+
+    for (let i = 0; i < n; i++) dfs(i);
+
+    if (hasCycle) continue; // retry
+
+    // Also verify every path with dependencies actually HAS a valid clear order
+    // (the topological sort guarantees this if no cycle)
+
+    // Valid board!
+    paths = candidatePaths;
+    break;
+  }
+
+  if (paths.length < 2) {
+    // Retry with offset seeds, but cap retries to prevent infinite recursion
+    if (!generateLevel._retries) generateLevel._retries = 0;
+    generateLevel._retries++;
+    if (generateLevel._retries < 10) {
+      rng = createRNG(lvl * 2654435761 + 997 * generateLevel._retries);
+      return generateLevel(lvl);
+    }
+    // Fallback: reduce path count and try once more
+    generateLevel._retries = 0;
+    rng = createRNG(lvl * 2654435761 + 7919);
+    // Will generate with whatever paths succeed
+  }
+  generateLevel._retries = 0;
+
+  totalEdges = paths.reduce((sum, p) => sum + p.segments.length - 1, 0);
+
+  updateUI();
+  resize();
+  resetCamera();
+  showHint('Tap the right node — watch for blockers on the path');
+}
+
+// ── Blocking ──
+// A path is blocked if ANY of its segments (excluding its own source at index 0)
+// sits on the source node of another UNCLEARED path.
+
+function getBlockers(pathIndex) {
+  const path = paths[pathIndex];
+  const blockers = [];
+  for (let i = 1; i < path.segments.length; i++) {
+    const seg = path.segments[i];
+    for (let pi = 0; pi < paths.length; pi++) {
+      if (pi === pathIndex || clearedPathIndices.has(pi)) continue;
+      const other = paths[pi];
+      if (other.sourceNode.gx === seg.gx && other.sourceNode.gy === seg.gy) {
+        blockers.push(pi);
+      }
+    }
+  }
+  return [...new Set(blockers)];
+}
+
+function isPathClearable(pi) {
+  return getBlockers(pi).length === 0;
+}
+
+// Find the segment index where the path gets blocked
+function getBlockedSegIndex(pathIndex) {
+  const path = paths[pathIndex];
+  for (let i = 1; i < path.segments.length; i++) {
+    const seg = path.segments[i];
+    for (let pi = 0; pi < paths.length; pi++) {
+      if (pi === pathIndex || clearedPathIndices.has(pi)) continue;
+      if (paths[pi].sourceNode.gx === seg.gx && paths[pi].sourceNode.gy === seg.gy) {
+        return i;
+      }
+    }
+  }
+  return -1;
+}
+
+// ── Interaction ──
+
+function getSourceAt(px, py) {
+  const rect = canvas.getBoundingClientRect();
+  const x = px - rect.left;
+  const y = py - rect.top;
+  const hitRadius = cellSize * 0.45 * camZoom;
+  for (let i = 0; i < paths.length; i++) {
+    if (clearedPathIndices.has(i)) continue;
+    const src = paths[i].sourceNode;
+    if (Math.hypot(x - gx2px(src.gx), y - gy2py(src.gy)) < hitRadius) return i;
+  }
+  return -1;
+}
+
+function tapPath(pathIndex) {
+  if (won || lost) return;
+  const path = paths[pathIndex];
+  if (clearedPathIndices.has(pathIndex)) return; // already cleared
+  if (path.fuse?.active) return; // already burning
+  sfxClickNode();
+  moves++;
+
+  if (!isPathClearable(pathIndex)) {
+    // BLOCKED
+
+    lives--;
+
+    // Flash blocking nodes red
+    const blockers = getBlockers(pathIndex);
+    for (const bi of blockers) {
+      const bsrc = paths[bi].sourceNode;
+      nodeFlashAnims.push({ gx: bsrc.gx, gy: bsrc.gy, color: '#ff4466', t: 0 });
+    }
+    // Flash tapped node
+    nodeFlashAnims.push({ gx: path.sourceNode.gx, gy: path.sourceNode.gy, color: '#ff4466', t: 0 });
+
+    canvas.classList.remove('shake');
+    void canvas.offsetWidth;
+    canvas.classList.add('shake');
+    setTimeout(() => canvas.classList.remove('shake'), 400);
+
+    loseHeart();
+
+    const blockerNames = blockers.map(bi => paths[bi].colorName);
+    const unique = [...new Set(blockerNames)];
+    if (!isTutorialLevel(level)) {
+      showHint('Blocked! Clear ' + unique.join(' & ') + ' first', true);
+    }
+
+    updateUI();
+    advanceTutorialOn('blocked');
+    checkLose();
+    return;
+  }
+
+  // Immediately mark as logically cleared (so other paths can be tapped)
+  clearedPathIndices.add(pathIndex);
+
+  // Start fuse animation (purely visual)
+  pulseAnims.push({ gx: path.sourceNode.gx, gy: path.sourceNode.gy, t: 0, color: path.color });
+
+  // Calculate total path pixel length for consistent fuse speed
+  const segs = path.segments;
+  let totalLen = 0;
+  for (let i = 0; i < segs.length - 1; i++) {
+    totalLen += Math.hypot(
+      gx2px(segs[i+1].gx) - gx2px(segs[i].gx),
+      gy2py(segs[i+1].gy) - gy2py(segs[i].gy)
+    );
+  }
+
+  // Fuse speed: pixels per frame (tuned for ~60fps feel)
+  const fuseSpeed = Math.max(2, cellSize * 0.06);
+
+  path.fuse = {
+    active: true,
+    progress: 0,
+    totalLen,
+    speed: fuseSpeed,
+    color: path.color,
+    pathIndex,
+  };
+
+  // Start fuse burn sound — estimate duration from length and speed at ~60fps
+  const fuseDurationMs = (totalLen / fuseSpeed) * (1000 / 60);
+  sfxFuseBurnStart(pathIndex, fuseDurationMs);
+
+  updateUI();
+  advanceTutorialOn('clear');
+  checkWin();
+}
+
+// Called from the draw loop each frame
+function updateFuses() {
+  for (const path of paths) {
+    if (!path.fuse || !path.fuse.active) continue;
+    const fuse = path.fuse;
+    fuse.progress += fuse.speed;
+
+    // Spawn particles at fuse head position
+    const headPos = getFuseHeadPosition(path, fuse.progress);
+    if (headPos) {
+      for (let i = 0; i < 2; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 0.3 + Math.random() * 1.5;
+        particles.push({
+          x: headPos.x, y: headPos.y,
+          vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
+          life: 0.8, color: fuse.color, size: 1.5 + Math.random() * 2.5,
+        });
+      }
+    }
+
+    if (fuse.progress >= fuse.totalLen) {
+      // Fuse complete — final burst at end of path
+      sfxFuseBurnStop(fuse.pathIndex);
+      sfxPop();
+      fuse.active = false;
+
+      // Big burst at the last segment point
+      const lastSeg = path.segments[path.segments.length - 1];
+      for (let i = 0; i < 16; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 1 + Math.random() * 3;
+        particles.push({
+          x: gx2px(lastSeg.gx), y: gy2py(lastSeg.gy),
+          vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
+          life: 1, color: fuse.color, size: 3 + Math.random() * 4,
+        });
+      }
+    }
+  }
+}
+
+// Get the pixel position of the fuse head along a path
+function getFuseHeadPosition(path, progress) {
+  const segs = path.segments;
+  let dist = 0;
+  for (let i = 0; i < segs.length - 1; i++) {
+    const x1 = gx2px(segs[i].gx), y1 = gy2py(segs[i].gy);
+    const x2 = gx2px(segs[i+1].gx), y2 = gy2py(segs[i+1].gy);
+    const segLen = Math.hypot(x2 - x1, y2 - y1);
+    if (dist + segLen >= progress) {
+      const t = (progress - dist) / segLen;
+      return { x: x1 + (x2 - x1) * t, y: y1 + (y2 - y1) * t };
+    }
+    dist += segLen;
+  }
+  const last = segs[segs.length - 1];
+  return { x: gx2px(last.gx), y: gy2py(last.gy) };
+}
+
+// Get how far the fuse has burned (0 to 1) for rendering
+function getFuseRatio(path) {
+  if (!path.fuse || !path.fuse.active) return path.fuse ? 1 : 0;
+  return Math.min(path.fuse.progress / path.fuse.totalLen, 1);
+}
+
+// ── Hearts ──
+
+function renderHearts() {
+  const container = document.getElementById('hearts');
+  container.innerHTML = '';
+  for (let i = 0; i < maxLives; i++) {
+    const h = document.createElement('div');
+    h.className = 'heart' + (i >= lives ? ' lost' : '');
+    h.textContent = '♥';
+    container.appendChild(h);
+  }
+}
+
+function loseHeart() {
+  const hearts = document.querySelectorAll('.heart:not(.lost)');
+  const last = hearts[hearts.length - 1];
+  if (last) {
+    last.classList.add('breaking');
+    setTimeout(() => { last.classList.remove('breaking'); last.classList.add('lost'); }, 500);
+  }
+}
+
+// ── UI ──
+
+function displayLevel() {
+  if (isTutorialLevel(level)) return level;
+  return level - TUTORIAL_LEVELS.length;
+}
+
+function updateUI() {
+  document.getElementById('levelNum').textContent = displayLevel();
+  const pct = paths.length > 0 ? (clearedPathIndices.size / paths.length) * 100 : 0;
+  document.getElementById('progressFill').style.width = pct + '%';
+  renderHearts();
+}
+
+let hintTimer = null;
+function showHint(text, isBlocked) {
+  const hint = document.getElementById('hint');
+  hint.textContent = text;
+  hint.classList.toggle('blocked', !!isBlocked);
+  hint.classList.add('show');
+  clearTimeout(hintTimer);
+  hintTimer = setTimeout(() => hint.classList.remove('show'), isBlocked ? 2500 : 3500);
+}
+
+function checkWin() {
+  if (clearedPathIndices.size >= paths.length && !won && !lost) {
+    won = true;
+    setTimeout(showWin, 500);
+  }
+}
+
+function checkLose() {
+  if (lives <= 0 && !won && !lost) {
+    lost = true;
+    setTimeout(showLose, 400);
+  }
+}
+
+function showWin() {
+  const perfect = paths.length;
+  const ratio = perfect > 0 ? moves / perfect : 1;
+  let starCount = lives === maxLives && ratio <= 1 ? 3 : ratio <= 1.5 && lives >= 2 ? 2 : 1;
+
+  document.getElementById('stars').textContent = '★'.repeat(starCount) + '☆'.repeat(3 - starCount);
+  document.getElementById('stars').style.color = '#ffd700';
+  document.getElementById('winMoves').textContent = moves;
+  document.getElementById('winPar').textContent = perfect;
+  const isTutorialEnd = level === TUTORIAL_LEVELS.length;
+  const msgs = isTutorialEnd
+    ? ['Tutorial complete! You\'re ready to play.']
+    : ['Nice work!', 'Satisfying!', 'Clean sweep!', 'Smooth!', 'Flawless!', 'Untangled!'];
+  document.getElementById('winSub').textContent = msgs[Math.floor(Math.random() * msgs.length)];
+  document.getElementById('winOverlay').classList.add('show');
+  sfxWin();
+}
+
+function showLose() {
+  const msgs = [
+    'Read the board — find the unblocked path first',
+    'Look for the path with no other buttons on it',
+    'Clear from the outside in!',
+  ];
+  document.getElementById('loseSub').textContent = msgs[Math.floor(Math.random() * msgs.length)];
+  document.getElementById('loseOverlay').classList.add('show');
+  sfxLose();
+}
+
+// ── Events ──
+
+// ── Events: Pan, Zoom, Tap ──
+
+let pointers = new Map(); // pointerId -> { x, y, startX, startY, startTime }
+let isPanning = false;
+let lastPinchDist = 0;
+let panStartCamX = 0, panStartCamY = 0;
+let didMove = false;
+
+canvas.addEventListener('pointerdown', (e) => {
+  e.preventDefault();
+  canvas.setPointerCapture(e.pointerId);
+  pointers.set(e.pointerId, {
+    x: e.clientX, y: e.clientY,
+    startX: e.clientX, startY: e.clientY,
+    startTime: Date.now(),
+  });
+
+  if (pointers.size === 1) {
+    isPanning = false;
+    didMove = false;
+    panStartCamX = camX;
+    panStartCamY = camY;
+  }
+
+  if (pointers.size === 2) {
+    const pts = [...pointers.values()];
+    lastPinchDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+  }
+});
+
+canvas.addEventListener('pointermove', (e) => {
+  e.preventDefault();
+  const ptr = pointers.get(e.pointerId);
+  if (!ptr) return;
+
+  ptr.x = e.clientX;
+  ptr.y = e.clientY;
+
+  if (pointers.size === 1) {
+    const dx = e.clientX - ptr.startX;
+    const dy = e.clientY - ptr.startY;
+    if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+      isPanning = true;
+      didMove = true;
+    }
+    if (isPanning) {
+      camX = panStartCamX + dx / camZoom;
+      camY = panStartCamY + dy / camZoom;
+    }
+  }
+
+  if (pointers.size === 2) {
+    const pts = [...pointers.values()];
+    const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+    if (lastPinchDist > 0) {
+      const scale = dist / lastPinchDist;
+      camZoom = Math.max(0.5, Math.min(5, camZoom * scale));
+    }
+    lastPinchDist = dist;
+    didMove = true;
+  }
+});
+
+canvas.addEventListener('pointerup', (e) => {
+  e.preventDefault();
+  const ptr = pointers.get(e.pointerId);
+  pointers.delete(e.pointerId);
+
+  if (pointers.size === 0 && ptr && !didMove) {
+    // This was a tap — check for node hit
+    const pi = getSourceAt(ptr.startX, ptr.startY);
+    if (pi >= 0) tapPath(pi);
+  }
+
+  if (pointers.size < 2) lastPinchDist = 0;
+  isPanning = false;
+});
+
+canvas.addEventListener('pointercancel', (e) => {
+  pointers.delete(e.pointerId);
+  isPanning = false;
+});
+
+// Mouse wheel zoom
+canvas.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+  camZoom = Math.max(0.5, Math.min(5, camZoom * zoomFactor));
+}, { passive: false });
+
+// Double tap to reset camera
+let lastTapTime = 0;
+canvas.addEventListener('click', (e) => {
+  const now = Date.now();
+  if (now - lastTapTime < 300) {
+    resetCamera();
+  }
+  lastTapTime = now;
+});
+
+document.getElementById('tutBubble').addEventListener('click', () => {
+  advanceTutorialOn('tap');
+});
+
+document.getElementById('nextBtn').addEventListener('click', () => {
+  sfxClick();
+  document.getElementById('winOverlay').classList.remove('show');
+  level++;
+  saveProgress();
+  generateLevel(level);
+});
+
+document.getElementById('retryBtn').addEventListener('click', () => {
+  sfxClick();
+  document.getElementById('loseOverlay').classList.remove('show');
+  generateLevel(level);
+});
+
+document.getElementById('resetBtn').addEventListener('click', () => {
+  sfxClick();
+  document.getElementById('winOverlay').classList.remove('show');
+  document.getElementById('loseOverlay').classList.remove('show');
+  generateLevel(level);
+});
+
+// ── Render ──
+
+function draw() {
+  const w = canvas.width / dpr;
+  const h = canvas.height / dpr;
+  const time = performance.now() / 1000;
+
+  ctx.clearRect(0, 0, w, h);
+
+  // Background
+  ctx.fillStyle = '#0e0e16';
+  ctx.beginPath();
+  ctx.roundRect(0, 0, w, h, 16);
+  ctx.fill();
+
+  // Grid dots
+  ctx.fillStyle = 'rgba(255,255,255,0.03)';
+  for (let x = 0; x < gridW; x++) {
+    for (let y = 0; y < gridH; y++) {
+      ctx.beginPath();
+      ctx.arc(gx2px(x), gy2py(y), 1.5 * camZoom, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  // Draw path segments with rounded corners at non-button nodes
+  // A path is "visually active" if not cleared OR if its fuse is still burning
+  function isVisuallyActive(pi) {
+    if (!clearedPathIndices.has(pi)) return true;
+    if (paths[pi].fuse?.active) return true;
+    return false;
+  }
+
+  // Build a set of all active source button positions for quick lookup
+  const buttonPositions = new Set();
+  for (let pi = 0; pi < paths.length; pi++) {
+    if (!isVisuallyActive(pi)) continue;
+    const src = paths[pi].sourceNode;
+    buttonPositions.add(src.gx + ',' + src.gy);
+  }
+
+  // Build a set of all active path segment nodes (for endpoint shortening)
+  const occupiedNodes = new Map();
+  for (let pi = 0; pi < paths.length; pi++) {
+    if (!isVisuallyActive(pi)) continue;
+    const segs = paths[pi].segments;
+    for (let i = 0; i < segs.length; i++) {
+      const key = segs[i].gx + ',' + segs[i].gy;
+      if (!occupiedNodes.has(key)) occupiedNodes.set(key, new Set());
+      occupiedNodes.get(key).add(pi);
+    }
+  }
+
+  // Update fuse animations
+  updateFuses();
+
+  // Helper: compute pixel points along a path (with rounded corners + endpoint shortening)
+  function getPathPoints(path, pi) {
+    const segs = path.segments;
+    if (segs.length < 2) return [];
+
+    const radius = cellSize * 0.32;
+    const stopShort = cellSize * 0.18;
+    const points = [];
+    const resolution = 8;
+
+    // Always shorten start point
+    let sx = gx2px(segs[0].gx), sy = gy2py(segs[0].gy);
+    if (segs.length > 1) {
+      const nx = gx2px(segs[1].gx), ny = gy2py(segs[1].gy);
+      const dx = nx - sx, dy = ny - sy;
+      const len = Math.hypot(dx, dy) || 1;
+      sx += (dx / len) * stopShort;
+      sy += (dy / len) * stopShort;
+    }
+    points.push({ x: sx, y: sy });
+
+    for (let i = 1; i < segs.length; i++) {
+      const curr = segs[i];
+      let cx = gx2px(curr.gx), cy = gy2py(curr.gy);
+      const isLast = (i === segs.length - 1);
+
+      // Always shorten end point
+      if (isLast) {
+        const prev = segs[i - 1];
+        const px = gx2px(prev.gx), py = gy2py(prev.gy);
+        const dx = cx - px, dy = cy - py;
+        const len = Math.hypot(dx, dy) || 1;
+        cx -= (dx / len) * stopShort;
+        cy -= (dy / len) * stopShort;
+        points.push({ x: cx, y: cy });
+        continue;
+      }
+
+      // Always round corners at direction changes
+      const prev = segs[i - 1];
+      const next = segs[i + 1];
+      const dx1 = curr.gx - prev.gx, dy1 = curr.gy - prev.gy;
+      const dx2 = next.gx - curr.gx, dy2 = next.gy - curr.gy;
+
+      if (dx1 !== dx2 || dy1 !== dy2) {
+        const px = gx2px(prev.gx), py = gy2py(prev.gy);
+        const nx = gx2px(next.gx), ny = gy2py(next.gy);
+        const ax = cx - (cx - px) * (radius / cellSize);
+        const ay = cy - (cy - py) * (radius / cellSize);
+        const bx = cx + (nx - cx) * (radius / cellSize);
+        const by = cy + (ny - cy) * (radius / cellSize);
+
+        points.push({ x: ax, y: ay });
+        for (let t = 1; t <= resolution; t++) {
+          const tt = t / resolution;
+          const u = 1 - tt;
+          const qx = u*u*ax + 2*u*tt*cx + tt*tt*bx;
+          const qy = u*u*ay + 2*u*tt*cy + tt*tt*by;
+          points.push({ x: qx, y: qy });
+        }
+        continue;
+      }
+
+      points.push({ x: cx, y: cy });
+    }
+
+    return points;
+  }
+
+  // Helper: compute cumulative distances for a set of points
+  function getCumulativeDist(points) {
+    const dists = [0];
+    for (let i = 1; i < points.length; i++) {
+      dists.push(dists[i-1] + Math.hypot(points[i].x - points[i-1].x, points[i].y - points[i-1].y));
+    }
+    return dists;
+  }
+
+  // Helper: draw points as a stroked path, optionally only from startDist to endDist
+  function strokePoints(points, dists, lineWidth, alpha, color, startDist, endDist) {
+    if (points.length < 2) return;
+    const totalLen = dists[dists.length - 1];
+    const sd = startDist ?? 0;
+    const ed = endDist ?? totalLen;
+    if (sd >= ed) return;
+
+    ctx.strokeStyle = color;
+    ctx.lineWidth = lineWidth;
+    ctx.globalAlpha = alpha;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+
+    let started = false;
+    for (let i = 0; i < points.length; i++) {
+      const d = dists[i];
+      if (d < sd) continue;
+
+      if (!started) {
+        // Interpolate start point
+        if (i > 0 && dists[i-1] < sd) {
+          const t = (sd - dists[i-1]) / (d - dists[i-1]);
+          const px = points[i-1].x + (points[i].x - points[i-1].x) * t;
+          const py = points[i-1].y + (points[i].y - points[i-1].y) * t;
+          ctx.moveTo(px, py);
+        } else {
+          ctx.moveTo(points[i].x, points[i].y);
+        }
+        started = true;
+      }
+
+      if (d > ed) {
+        // Interpolate end point
+        const prev = dists[i-1];
+        const t = (ed - prev) / (d - prev);
+        const px = points[i-1].x + (points[i].x - points[i-1].x) * t;
+        const py = points[i-1].y + (points[i].y - points[i-1].y) * t;
+        ctx.lineTo(px, py);
+        break;
+      }
+
+      ctx.lineTo(points[i].x, points[i].y);
+    }
+
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+
+  // Precompute path geometry
+  const pathGeo = [];
+  for (let pi = 0; pi < paths.length; pi++) {
+    if (!isVisuallyActive(pi)) {
+      pathGeo.push(null);
+      continue;
+    }
+    const points = getPathPoints(paths[pi], pi);
+    const dists = getCumulativeDist(points);
+    pathGeo.push({ points, dists });
+  }
+
+  // Draw paths — fuse-aware: only draw the unburned portion
+  // Pass 1: glows
+  for (let pi = 0; pi < paths.length; pi++) {
+    if (!pathGeo[pi]) continue;
+    const { points, dists } = pathGeo[pi];
+    const path = paths[pi];
+    const fusePixels = path.fuse?.active ? path.fuse.progress : 0;
+
+    strokePoints(points, dists, 18, 0.06, path.color, fusePixels);
+    strokePoints(points, dists, 10, 0.12, path.color, fusePixels);
+  }
+
+  // Pass 2: main lines
+  for (let pi = 0; pi < paths.length; pi++) {
+    if (!pathGeo[pi]) continue;
+    const { points, dists } = pathGeo[pi];
+    const path = paths[pi];
+    const fusePixels = path.fuse?.active ? path.fuse.progress : 0;
+
+    strokePoints(points, dists, 3, 0.7, path.color, fusePixels);
+  }
+
+  // Draw fuse head glow
+  for (let pi = 0; pi < paths.length; pi++) {
+    const path = paths[pi];
+    if (!path.fuse?.active) continue;
+    const head = getFuseHeadPosition(path, path.fuse.progress);
+    if (!head) continue;
+
+    ctx.fillStyle = '#fff';
+    ctx.globalAlpha = 0.9;
+    ctx.beginPath();
+    ctx.arc(head.x, head.y, 5, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = path.color;
+    ctx.globalAlpha = 0.3;
+    ctx.beginPath();
+    ctx.arc(head.x, head.y, 12, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+
+  // Draw source nodes
+  for (let pi = 0; pi < paths.length; pi++) {
+    if (clearedPathIndices.has(pi)) continue;
+    const path = paths[pi];
+    if (path.fuse?.active) continue; // hide while burning
+    const src = path.sourceNode;
+    const px = gx2px(src.gx), py = gy2py(src.gy);
+    const pulse = 0.5 + 0.5 * Math.sin(time * 3 + pi * 1.5);
+
+    // All nodes look the same — player must read the board
+    ctx.fillStyle = path.color;
+    ctx.globalAlpha = 0.1 + pulse * 0.12;
+    ctx.beginPath();
+    ctx.arc(px, py, cellSize * 0.45 + pulse * 5, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = path.color;
+    ctx.beginPath();
+    ctx.arc(px, py, cellSize * 0.28, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#fff';
+    ctx.globalAlpha = 0.85;
+    ctx.beginPath();
+    ctx.arc(px, py, cellSize * 0.1, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+
+  // Tutorial highlight ring
+  if (tutorialHighlightPath >= 0 && tutorialHighlightPath < paths.length && !clearedPathIndices.has(tutorialHighlightPath)) {
+    const hlPath = paths[tutorialHighlightPath];
+    const hlSrc = hlPath.sourceNode;
+    const hlPx = gx2px(hlSrc.gx), hlPy = gy2py(hlSrc.gy);
+    const hlPulse = 0.5 + 0.5 * Math.sin(time * 4);
+    ctx.strokeStyle = '#7df9ff';
+    ctx.globalAlpha = 0.4 + hlPulse * 0.3;
+    ctx.lineWidth = 2;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.arc(hlPx, hlPy, cellSize * 0.55 + hlPulse * 4, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 1;
+  }
+
+  // Pulse ring anims
+  for (let i = pulseAnims.length - 1; i >= 0; i--) {
+    const p = pulseAnims[i];
+    p.t += 0.025;
+    if (p.t >= 1) { pulseAnims.splice(i, 1); continue; }
+    ctx.strokeStyle = p.color;
+    ctx.globalAlpha = 1 - p.t;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(gx2px(p.gx), gy2py(p.gy), cellSize * 0.2 + p.t * cellSize * 0.8, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+
+  // Red flash anims
+  for (let i = nodeFlashAnims.length - 1; i >= 0; i--) {
+    const f = nodeFlashAnims[i];
+    f.t += 0.025;
+    if (f.t >= 1) { nodeFlashAnims.splice(i, 1); continue; }
+    const px = gx2px(f.gx), py = gy2py(f.gy);
+
+    ctx.fillStyle = f.color;
+    ctx.globalAlpha = (1 - f.t) * 0.5;
+    ctx.beginPath();
+    ctx.arc(px, py, cellSize * 0.35 + f.t * cellSize * 0.3, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = f.color;
+    ctx.globalAlpha = (1 - f.t) * 0.9;
+    ctx.lineWidth = 2.5;
+    const xs = cellSize * 0.15 + f.t * 5;
+    ctx.beginPath();
+    ctx.moveTo(px - xs, py - xs); ctx.lineTo(px + xs, py + xs);
+    ctx.moveTo(px + xs, py - xs); ctx.lineTo(px - xs, py + xs);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+
+  // Particles
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.vx; p.y += p.vy;
+    p.vx *= 0.95; p.vy *= 0.95;
+    p.life -= 0.022;
+    if (p.life <= 0) { particles.splice(i, 1); continue; }
+    ctx.fillStyle = p.color;
+    ctx.globalAlpha = p.life * 0.75;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+
+  requestAnimationFrame(draw);
+}
+
+// ── Progress Persistence ──
+
+function saveProgress() {
+  try {
+    const highest = Math.max(level, parseInt(localStorage.getItem('fc_highest') || '1'));
+    localStorage.setItem('fc_highest', highest.toString());
+  } catch(e) {}
+}
+
+function loadProgress() {
+  try {
+    return parseInt(localStorage.getItem('fc_highest') || '1');
+  } catch(e) { return 1; }
+}
+
+window.addEventListener('resize', resize);
+level = loadProgress();
+generateLevel(level);
+draw();
+</script>
+</body>
+</html>
