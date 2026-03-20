@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head><style>body{margin:0;background:#000;display:flex;align-items:center;justify-content:center;height:100vh;}</style></head>
+<body>
+<canvas id="c" width="512" height="512"></canvas>
+<script>
+const ctx = document.getElementById('c').getContext('2d');
+const W = 512;
+
+// Background
+ctx.fillStyle = '#0a0a0f';
+ctx.beginPath();
+ctx.roundRect(0, 0, W, W, 64);
+ctx.fill();
+
+// Path: down one, right one (L-shape)
+const cx = W * 0.38, cy = W * 0.28;
+const step = W * 0.3;
+const color = '#7df9ff';
+
+// Glow layers
+function drawPath(lw, alpha) {
+  ctx.strokeStyle = color;
+  ctx.lineWidth = lw;
+  ctx.globalAlpha = alpha;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  ctx.moveTo(cx, cy + step * 0.15);
+  ctx.lineTo(cx, cy + step);
+  ctx.quadraticCurveTo(cx, cy + step + step * 0.35, cx + step * 0.35, cy + step + step * 0.35);
+  ctx.lineTo(cx + step - step * 0.15, cy + step + step * 0.35);
+  ctx.stroke();
+}
+
+drawPath(40, 0.06);
+drawPath(24, 0.12);
+drawPath(6, 0.7);
+
+// Node - outer glow
+ctx.fillStyle = color;
+ctx.globalAlpha = 0.15;
+ctx.beginPath();
+ctx.arc(cx, cy, 60, 0, Math.PI * 2);
+ctx.fill();
+
+// Node - main circle
+ctx.globalAlpha = 1;
+ctx.fillStyle = color;
+ctx.beginPath();
+ctx.arc(cx, cy, 36, 0, Math.PI * 2);
+ctx.fill();
+
+// Node - white dot
+ctx.fillStyle = '#fff';
+ctx.globalAlpha = 0.9;
+ctx.beginPath();
+ctx.arc(cx, cy, 13, 0, Math.PI * 2);
+ctx.fill();
+
+// End sparkle
+const ex = cx + step - step * 0.15, ey = cy + step + step * 0.35;
+ctx.globalAlpha = 0.5;
+ctx.fillStyle = color;
+ctx.beginPath();
+ctx.arc(ex, ey, 8, 0, Math.PI * 2);
+ctx.fill();
+
+ctx.globalAlpha = 0.2;
+ctx.beginPath();
+ctx.arc(ex, ey, 18, 0, Math.PI * 2);
+ctx.fill();
+
+ctx.globalAlpha = 1;
+
+// Export
+document.getElementById('c').toBlob(blob => {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'icon-512.png';
+  a.click();
+});
+</script>
+</body>
+</html>

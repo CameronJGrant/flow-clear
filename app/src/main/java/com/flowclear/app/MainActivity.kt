@@ -1,9 +1,12 @@
 package com.flowclear.app
 
 import android.annotation.SuppressLint
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.view.View
 import android.view.WindowInsetsController
+import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -38,7 +41,16 @@ class MainActivity : AppCompatActivity() {
             settings.setSupportZoom(false)
             settings.cacheMode = WebSettings.LOAD_NO_CACHE
             setBackgroundColor(0xFF0A0A0F.toInt())
-            webViewClient = WebViewClient()
+            webViewClient = object : WebViewClient() {
+                override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
+                    val url = request?.url?.toString() ?: return false
+                    if (url.startsWith("http://") || url.startsWith("https://")) {
+                        startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                        return true
+                    }
+                    return false
+                }
+            }
             overScrollMode = View.OVER_SCROLL_NEVER
         }
 
@@ -48,10 +60,11 @@ class MainActivity : AppCompatActivity() {
 
     @Deprecated("Use OnBackPressedCallback instead")
     override fun onBackPressed() {
-        if (webView.canGoBack()) {
-            webView.goBack()
-        } else {
-            super.onBackPressed()
+        webView.evaluateJavascript("handleBackButton()") { result ->
+            if (result == "false") {
+                @Suppress("DEPRECATION")
+                super.onBackPressed()
+            }
         }
     }
 }

@@ -501,7 +501,7 @@
       <div class="label">Rate Us</div>
       <span class="arrow">›</span>
     </a>
-    <a class="settings-link" id="privacyLink" href="#">
+    <a class="settings-link" id="privacyLink" href="https://privacy.synapop.games" target="_blank">
       <div class="label">Privacy Policy</div>
       <span class="arrow">›</span>
     </a>
@@ -1631,6 +1631,26 @@ document.getElementById('resetBtn').addEventListener('click', () => {
   generateLevel(level);
 });
 
+// ── Back Button ──
+function handleBackButton() {
+  const settings = document.getElementById('settingsOverlay');
+  if (settings.classList.contains('show')) {
+    settings.classList.remove('show');
+    return true;
+  }
+  const win = document.getElementById('winOverlay');
+  if (win.classList.contains('show')) {
+    win.classList.remove('show');
+    return true;
+  }
+  const lose = document.getElementById('loseOverlay');
+  if (lose.classList.contains('show')) {
+    lose.classList.remove('show');
+    return true;
+  }
+  return false; // let Android handle it (exit app)
+}
+
 // ── Render ──
 
 function draw() {
@@ -1989,6 +2009,7 @@ function loadProgress() {
 }
 
 window.addEventListener('resize', resize);
+
 level = loadProgress();
 generateLevel(level);
 draw();

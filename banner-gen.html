@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+<head><style>body{margin:0;background:#000;display:flex;align-items:center;justify-content:center;height:100vh;}</style></head>
+<body>
+<canvas id="c" width="1024" height="500"></canvas>
+<script>
+const ctx = document.getElementById('c').getContext('2d');
+const W = 1024, H = 500;
+
+// Background
+ctx.fillStyle = '#0a0a0f';
+ctx.fillRect(0, 0, W, H);
+
+// Subtle grid dots
+ctx.fillStyle = 'rgba(255,255,255,0.025)';
+for (let x = 60; x < W; x += 55) {
+  for (let y = 40; y < H; y += 55) {
+    ctx.beginPath();
+    ctx.arc(x, y, 1.2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+const colors = ['#ff6b8a','#7df9ff','#a78bfa','#4ade80','#fbbf24','#2dd4bf'];
+
+function drawPathGlow(points, color, lw, alpha) {
+  ctx.strokeStyle = color;
+  ctx.lineWidth = lw;
+  ctx.globalAlpha = alpha;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  ctx.moveTo(points[0][0], points[0][1]);
+  for (let i = 1; i < points.length; i++) ctx.lineTo(points[i][0], points[i][1]);
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+}
+
+function drawNode(x, y, color, size) {
+  ctx.fillStyle = color;
+  ctx.globalAlpha = 0.12;
+  ctx.beginPath();
+  ctx.arc(x, y, size * 1.8, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.arc(x, y, size, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = '#fff';
+  ctx.globalAlpha = 0.85;
+  ctx.beginPath();
+  ctx.arc(x, y, size * 0.35, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+}
+
+// Left side decorative paths
+const s = 55;
+
+// Pink path - left side
+const p1 = [[60,150],[60,205],[60,260],[115,260],[170,260]];
+drawPathGlow(p1, colors[0], 22, 0.05);
+drawPathGlow(p1, colors[0], 12, 0.1);
+drawPathGlow(p1, colors[0], 3, 0.6);
+drawNode(60, 150, colors[0], 14);
+
+// Cyan path - left-center
+const p2 = [[170,95],[170,150],[170,205],[170,260],[170,315],[225,315]];
+drawPathGlow(p2, colors[1], 22, 0.05);
+drawPathGlow(p2, colors[1], 12, 0.1);
+drawPathGlow(p2, colors[1], 3, 0.6);
+drawNode(170, 95, colors[1], 14);
+
+// Green path - bottom left
+const p3 = [[60,370],[115,370],[170,370],[225,370],[225,315]];
+drawPathGlow(p3, colors[3], 22, 0.05);
+drawPathGlow(p3, colors[3], 12, 0.1);
+drawPathGlow(p3, colors[3], 3, 0.6);
+drawNode(60, 370, colors[3], 14);
+
+// Right side decorative paths
+// Purple path
+const p4 = [[800,100],[800,155],[800,210],[855,210],[910,210],[965,210]];
+drawPathGlow(p4, colors[2], 22, 0.05);
+drawPathGlow(p4, colors[2], 12, 0.1);
+drawPathGlow(p4, colors[2], 3, 0.6);
+drawNode(800, 100, colors[2], 14);
+
+// Yellow path
+const p5 = [[910,100],[910,155],[910,210],[910,265],[910,320],[855,320]];
+drawPathGlow(p5, colors[4], 22, 0.05);
+drawPathGlow(p5, colors[4], 12, 0.1);
+drawPathGlow(p5, colors[4], 3, 0.6);
+drawNode(910, 100, colors[4], 14);
+
+// Teal path
+const p6 = [[800,320],[800,375],[855,375],[910,375],[965,375]];
+drawPathGlow(p6, colors[5], 22, 0.05);
+drawPathGlow(p6, colors[5], 12, 0.1);
+drawPathGlow(p6, colors[5], 3, 0.6);
+drawNode(800, 320, colors[5], 14);
+
+// Title text - center
+ctx.textAlign = 'center';
+ctx.textBaseline = 'middle';
+
+// Title glow
+ctx.font = '900 72px Outfit, sans-serif';
+ctx.fillStyle = '#7df9ff';
+ctx.globalAlpha = 0.08;
+ctx.fillText('FLOW CLEAR', W/2, H/2 - 20);
+ctx.globalAlpha = 1;
+
+// Title gradient
+const grad = ctx.createLinearGradient(W/2 - 180, 0, W/2 + 180, 0);
+grad.addColorStop(0, '#7df9ff');
+grad.addColorStop(1, '#a78bfa');
+ctx.fillStyle = grad;
+ctx.font = '900 72px Outfit, sans-serif';
+ctx.fillText('FLOW CLEAR', W/2, H/2 - 20);
+
+// Tagline
+ctx.fillStyle = '#555568';
+ctx.font = '300 22px Outfit, sans-serif';
+ctx.fillText('Light the fuse. Clear the board.', W/2, H/2 + 35);
+
+// Load font then redraw text
+const link = document.createElement('link');
+link.href = 'https://fonts.googleapis.com/css2?family=Outfit:wght@300;900&display=swap';
+link.rel = 'stylesheet';
+document.head.appendChild(link);
+link.onload = () => {
+  setTimeout(() => {
+    // Redraw text area
+    ctx.fillStyle = '#0a0a0f';
+    ctx.fillRect(280, H/2 - 70, W - 560, 140);
+    // Dots in text area
+    ctx.fillStyle = 'rgba(255,255,255,0.025)';
+    for (let x = 280; x < W - 280; x += 55) {
+      for (let y = H/2 - 70; y < H/2 + 70; y += 55) {
+        ctx.beginPath();
+        ctx.arc(x, y, 1.2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    // Glow
+    ctx.font = '900 72px Outfit, sans-serif';
+    ctx.fillStyle = '#7df9ff';
+    ctx.globalAlpha = 0.08;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('FLOW CLEAR', W/2, H/2 - 20);
+    ctx.globalAlpha = 1;
+    // Gradient title
+    const grad2 = ctx.createLinearGradient(W/2 - 180, 0, W/2 + 180, 0);
+    grad2.addColorStop(0, '#7df9ff');
+    grad2.addColorStop(1, '#a78bfa');
+    ctx.fillStyle = grad2;
+    ctx.fillText('FLOW CLEAR', W/2, H/2 - 20);
+    // Tagline
+    ctx.fillStyle = '#555568';
+    ctx.font = '300 22px Outfit, sans-serif';
+    ctx.fillText('Light the fuse. Clear the board.', W/2, H/2 + 35);
+  }, 500);
+};
+</script>
+</body>
+</html>
